@@ -1,0 +1,968 @@
+\documentclass[12pt, letterpaper]{report}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\title{IQ-cryptography Report}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{algorithm}{Algorithm}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\newtheorem{example}{Example}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\maketitle
+\begin{abstract}
+In this report the survey of IQ-cryptography algebra and algorithms is given. In particular the choice of secure parameters is discussed.
+\end{abstract}
+\section{IQ-cryptography}
+The IQ-cryptography or quadratic number field cryptography ({\verb QNFC }) is another cryptographic scheme based on the abelian group, the ideal class group of some 
+imaginary quadratic extension. {\verb QNFC } was proposed by Buchmann and Williams \cite{BW88}, \cite{BW90}. The question whether {\verb QNFC } is secure at
+all, and the choice of cryptographically secure key-sizes, if it is, requires the study of the difficulty of the discrete logarithm problem ({\verb DLP }).
+The case of the probabilistic algorithms the analysis relies on the well-established Extended Riemann Hypothesis (ERH).
+The particularity of these groups consists in the fact that its subexponentially difficult to calculate the size of the groups, contrary to the 
+elliptic case. The multiplication and factorization is more time consumming compared to the elliptic case. 
+The key observation is that {\verb IQ-RDSA } signature is eventually faster than a $RSA$ signature. The crossover at a security level that is rather 
+moderate (according to \cite{Lenstra}). Since the efficiency of IQ arithmetic received comparably little attention in the past, it is reasonable to 
+expect significant improvements in the future. These improvements will make IQ cryptosystems even more competitive to traditional cryptosystems.
+Jacobson \cite{Jacob} reports running times of less than an hour for the computation of the structure of class groups of random 40 digit discriminants, and
+running (CPU) times of less than $10$ days for special $80$ digit discriminants on a 296 MHz SUN UltraSPARC-II platform. 
+The running time of his algorithms can be improved using the optimized linear algebra techniques of \cite{GJ}. Vollmer \cite{Vollmer} has presented an IQ-DL algorithm
+that assuming the extended Riemann hypothesis has running time
+bounded by $L_{\Delta}[\frac 12,\frac{3\sqrt{2}}{4} + o(1)]$. For a proof of this bound see \cite{Vollmer2}. An extension of this algorithm that also computes the class 
+number and class group structure is shown to have the same complexity.
+\section{Basic definitions, algorithms and examples}
+It is convenient to start from lattices as a more intuitive object, later on pass to the ideals.
+Lattices correspond to forms. We begin by defining how to associate lattices to bases, points and forms. Another application of the lattices is in the domain 
+of the Post Quantum cryptography where the search for the minimal length vector turns out to be a hard problem for a quantum computer, for the lattices of 
+size $n: \mathbb{Z}^{n}$. In the case of forms, the lattices are two-dimensional. There is an additional structure here that it is possible to multiply lattices
+on the elements of some ring, thus making the lattices into two dimensional modules. Let $A$ is a two-dimensional commutative $\mathbb{R}-$algebra 
+(i.e a module over $\mathbb{R}$, that is itself a commutative algebra) The following Lemma leads to classification of such algebras:
+\begin{lemma}
+\label{lemma1}
+Let $A$ be a two-dimensional commutative $\mathbb{R}-$algebra. Then exactly one of the following three statements holds.
+\begin{enumerate}
+\item There is an $\mathbb{R}-$basis $(1, i)$ of $A$ with $i^2 = 1$.
+\item There is an $\mathbb{R}-$basis $(1, i)$ of $A$ with $i^2 = 0$.
+\item There is an $\mathbb{R}-$basis $(1, i)$ of $A$ with $i^2 = -1$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+There is an $\mathbb{R}-$basis $(1, \alpha)$ of $A$ and by two-dimensionality of $A$ we have $\alpha^2 = x + y\alpha$ with $x, y \in \mathbb{R}$.
+This implies $(\alpha - (y/2))^2 = x + y^2/4$.
+Set
+$$
+i =\left\{
+\begin{array}{ll}
+\frac{\alpha - y/2}{\sqrt{|x + y^2/4|}} & x + y^2/4 \not = 0 \\
+\alpha - y/2 & \mbox{ otherwise }
+\end{array}
+\right.
+$$
+
+Then $(1, i)$ is still an $\mathbb{R}-$basis of $A$ and $i^2 \in {0, \pm 1}$ as asserted.
+Assume that there is an $\mathbb{R}-$basis $(1, \alpha)$ of $A$ with $\alpha^2 = 1$ and another 
+$\mathbb{R}-$ basis $(1, \beta)$ of $A$ with $\beta^2 = -1$. Then we can write $\alpha = x + y\beta$ with $x, y \in \mathbb{R}$.
+Hence,
+\begin{equation}
+1 = \alpha^2 = x^2 - y^2 + 2xy\beta.
+\label{eq1}
+\end{equation}
+It follows that $xy = 0$. Since $\alpha$ and $1$ are linearly independent, this implies
+$x = 0$. By (\ref{eq1}) we have $1 = -y^2$, a contradiction. In a similar way, it can
+be shown that $A$ cannot have two $\mathbb{R}-$bases $(1, \alpha)$ and $(1, \beta)$ with $\alpha^2 = 1$ and
+$\beta^2 = 0$ or $\alpha^2 = -1$ and $\beta^2 = 0$.
+\end{proof}
+There are three types of algebras corresponding to the square $i^2 = j$, denote them by $A_{j}$. The algebra that is equivalent to $\mathbb{C}$ corresponds to the last case of
+Lemma \ref{lemma1}. It follows as well that the only non-identical automorphism of $A$ is the conjugation:
+$$
+\sigma: A_{j}\longrightarrow A_{j} : x + i(j)y\longrightarrow x - i(j)y.
+$$
+
+\begin{definition}
+Let $\alpha \in A$.
+\begin{enumerate}
+\item The norm of $\alpha$ is $N(\alpha) = \alpha\sigma(\alpha)$.
+\item The trace of $\alpha$ is $Tr(\alpha) = \alpha + \sigma(\alpha)$.
+\item The characteristic polynomial of $\alpha$ is $c_\alpha(X) = X^2 - Tr(\alpha)X + N(\alpha)$.
+\end{enumerate}
+\end{definition}
+\begin{definition}
+The discriminant of a pair $(\alpha, \gamma) \in A^2$ is 
+$$
+\Delta(\alpha, \gamma) =(\sigma(\alpha)\gamma - \sigma(\gamma)\alpha)^2. 
+$$
+The discriminant of $\theta \in A$ is $\Delta(\theta) = \Delta(1, \theta)$.
+\end{definition}
+
+\begin{definition}
+Binary quadratic for integer coefficients is a polynomial in two variables of degree $2$:
+$$
+f(X, Y) = aX^2 + bXY + cY^2,
+$$
+where $a, b, c\in \mathbb{Z}$. We write
+$f = (a, b, c),$ and call $f$ a form.
+\end{definition}
+
+\begin{definition}
+A form $f(X, Y)$ is positive definite if for any 
+$$
+(X, Y) \in A^{2} \land (X, Y)\not = (0,0) \Rightarrow f(X,Y) > 0
+$$
+\end{definition}
+\begin{definition}
+A form $f$ with real coefficients is called irrational, if $f (x, y) \not = 0$ 
+for all $(x, y) \in\mathbb{Z}^2, (x, y) \not = (0,0)$
+\end{definition}
+\noindent
+Note that an integral form is irrational if it is irreducible in $\mathbb{Z}[X, Y]$. 
+Also, any positive definite form is irrational.
+
+\begin{definition}
+The discriminant of a form $f = (a, b, c)$ is $f^2 = b^2 - 4ac$.
+\end{definition}
+\noindent
+
+\begin{definition}
+The form $f=(a,b,c)$ is called normal if  $−a < b \le a$.
+\end{definition}
+
+\begin{definition}
+The positive definite form $(a, b, c)$ is called reduced if it is normal, $a \le c$, and if $b \ge 0$ for $a = c$.
+\end{definition}
+
+\begin{definition}
+Let $r$ be a real number. Then  $\lfloor r \rfloor$ is the uniquely determined
+integer with
+$$
+0 \le r- \lfloor r \rfloor < 1 .
+$$
+Also, $[r]$ is the uniquely determined integer with
+$$
+−1/2 \le r - [r] < 1/2
+$$
+If we choose
+$$
+s = \left\lfloor\frac{a-b}{2b}\right\rfloor = \left[\frac{-b}{2a}\right],
+$$
+then we have
+$$
+−a < b + 2sa \le a .
+$$
+\end{definition}
+\noindent
+This choice of $s$ minimizes the absolute value of $b$.
+\begin{definition}
+By $\rho(f) = \rho(a, b, c)$ we denote the normalization of
+$(c, -b, a)$. We call $\rho$ the reduction operator for positive definite forms.
+\end{definition}
+It is easy to check that
+$$
+\rho(f) = (c, -b + 2sc, cs^2 - bs + a)
+$$
+The reduction algorithm is very simple. 
+First, the form $f$ is normalized. Then the algorithm proceeds iteratively. If $f$ is reduced, then the algorithm
+returns $f$. Otherwise, $f$ is replaced by $\rho(f)$. This is called a reduction step.
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb rho }$(f, T)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A positive definite form $f = (a, b, c),\quad T = \left(
+\begin{array}{cc}
+t_{11} & t_{12}\\
+t_{21} & t_{22}
+\end{array}
+\right)\in \mathbb{Z}^{2\times 2}$.\\
+{\bf Output: } $\left(\rho(f), TU(f)\right)$.\\
+\indent $s \leftarrow s(f)$\\
+\indent return 
+$\left((c, -b + 2sc, cs^2 - bs + a),
+\left(
+\begin{array}{cc}
+t_{12}& t_{11} + st_{12}\\
+t_{22} & t_{21} + st_{22}
+\end{array}
+\right)\right)$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+{\verb normalize }$(f , T )$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A positive definite form $f = (a, b, c).$\\
+{\bf Output:} The normalization $g$ of $f$ and $U \in \Gamma$ such that $g = f U$.\\
+\indent $s \leftarrow \left\lfloor(a - b)/(2a)\right\rfloor $\\
+\indent return
+$
+\left((a, b + 2sa, as^2 + bs + c), 
+\left(
+\begin{array}{cc}
+1 & s \\
+0 & 1
+\end{array} \right)\right)\\
+$
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+{\verb reduce } $(f)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A positive definite form $f$.\\
+{\bf Output:} A reduced form $g$ and $T \in GL(2, \mathbb{Z})$ with $f T = g$.\\
+\indent $(g, T ) \leftarrow $ {\verb normalize } (f)\\
+\indent {\bf while} $g$ is not reduced {\bf do}\\
+\indent \indent $(g, T ) \leftarrow$ {\verb rho } $(g, T )$\\
+\indent return $(g, T)$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+
+\subsection{Properties of reduced forms}
+\begin{lemma}
+if $(a,b,c)$ is reduced, then $a\le \sqrt{|\Delta|/3}$
+\end{lemma}
+\begin{proof}
+Assume that $(a,b,c)$ is reduced. Then $|\Delta|=4ac-b^2\ge 4a^2 - a^2 = 3a^2$, which implies that $a\le \sqrt{|\Delta|/3}$
+\end{proof}
+\begin{lemma}
+If $f$ is normal and $a < \sqrt{|\Delta|}/2$, then $f$ is reduced.
+\label{lemma_red1}
+\end{lemma}
+\begin{proof}
+Let $f$ be normal and $a < |\Delta|/2$. Since $\Delta < 0$ we have
+$$
+c = \frac{b^2 +|\Delta|}{4a}\ge \frac{|\Delta|}{4a} > \frac{a^2}{a} = a
+$$
+Thus $f$ is reduced.
+\end{proof}
+
+\begin{lemma}
+if $f$ is normal and $a \ge \sqrt{|\Delta|}$, then $c \le a/2$
+\label{lemma_red2}
+\end{lemma}
+\begin{proof}
+Let $f$ be normal. Then we have $b^2 \le a^2$. Hence, it follows from $a\ge \sqrt{|\Delta|}$ that
+$$
+c = \frac{b^2 + |\Delta|}{4a} \le \frac{a^2 + a^2}{4a} = \frac{a}{2}.
+$$
+\end{proof}
+
+\begin{lemma}
+Let $f$ is normal but not reduced. If $a < \sqrt{|\Delta|}$, then $\rho(f)$ is reduced
+\label{lemma_red3}
+\end{lemma}
+\begin{proof}
+Assume that $a < \sqrt{|\Delta|}$. Since $f$ is normal but not reduced we have either $a > c$ or ($a = c$ and $b < 0$). In the latter 
+case $\rho(f)$ is obviously reduced. So assume that $a > c$. If $c < \sqrt{|\Delta|}/2,$ then $\rho(f)$ is reduced by Lemma \ref{lemma_red1}.
+Assume that $c\ge \sqrt{|\Delta|}/2$, that is $4c^2\ge |\Delta|$. Since $|b|\le a < \sqrt{|\Delta|}$ it follows that $b^2/(4c^2) < 1$.
+Hence  $|s(f)|\le 1$. If $s(f) =0$ then $\rho(f) = (c, -b,a)$ which is reduced since $c < a$. Assume that $|s(f)| = 1$. Then 
+${\rm sign}(s(f)) = {\rm sign}(b)$. Now $\rho(f) = (c, -b + 2s(f)c, a - |b| + c).$ If $ a > |b|,$ then $a -|b| + c > c$. Hence 
+$\rho(f)$ is reduced. If $a=b$, hen $s(f) = 1$ since $a$ is positive. So we have $\rho(f) = (c, -a + 2c, c)$. But $c \ge \sqrt{|\Delta|}/2 > a/2$,
+so $-a + 2c > 0$. This shows that $\rho(f)$ is reduced.
+\end{proof}
+\begin{proposition}
+The number of reduction steps performed by the reduction algorithm
+when applied to a positive definite form $f = (a, b, c)$ is at most
+$$
+\left\lfloor\log_2(a/\sqrt{|\Delta|})\right\rfloor + 2.
+$$
+\end{proposition}
+\begin{proof}
+In each reduction step, the form $(a,b,c)$ is replaced by normalization of $(c, -b, a)$. If $a\ge \sqrt{|\Delta|}$ and if 
+the resulting form is $(a^{\prime}, b^{\prime}, c^{\prime})$, then, by Lemma \ref{lemma_red2}, we have $a^{\prime} = c \le a/2$. This shows
+that after at most 
+$$
+\left\lfloor\log_2(a/\sqrt{|\Delta|})\right\rfloor + 1
+$$
+reduction steps the reducion algorithm finds a form $(a,b,c)$ with
+$a < \sqrt{|\Delta|}.$ From Lemma \ref{lemma_red3} it follows that plus another step is necessary to determine a reduced form.
+\end{proof}
+
+If we denote bit size of $f = (a,b,c)$ by $\mathop{\rm size }{f}$ the it can be proven using the above results
+\begin{proposition}
+The running time of Algorithm {\verb reduce } when applied to a
+positive definite form $f$ is $O((\mathop{\rm size}{f})^2)$.
+\end{proposition}
+
+The consistency of the definition of form discriminant comes from 
+\begin{definition}
+Let $f = (a, b, c)$ be an irrational form, 
+$\Delta =\Delta(f), j = {\rm sign}\Delta$, and $i = i(j)$. Then $a \not = 0$ and we set
+$$
+B(f) = \left(a, \frac{b + i\sqrt{|\Delta|}}{2}\right)
+$$
+and
+$$
+\theta(f) = \frac{b + i\sqrt{|\Delta|}}{2a}
+$$
+\end{definition}
+For an irrational form $f = (a, b, c)$ we have
+$$
+\Delta(B(f)) = a^2\Delta(f), \quad \Delta(\theta(f)) = (1/a^2)\Delta(f).
+$$
+\begin{definition}
+\strut
+\begin{enumerate}
+\item With an $\mathbb{R}-$basis $B = (\alpha, \beta)$ of $A$ we associate the lattice
+$$
+L(B) = \mathbb{Z}\alpha + \mathbb{Z}\gamma.
+$$
+\item With a point in $A  \char`\\ \mathbb{R}$ we associate the lattice
+$$
+L(\theta) = L(1, \theta) = \mathbb{Z} + \mathbb{Z}\theta.
+$$
+\item With a form $f$ we associate the lattice $L(f) = L(B(f))$.
+\end{enumerate}
+\end{definition}
+
+\begin{example}
+If $f = (1, 0, 1)$, then $L(f ) = \mathbb{Z} + \mathbb{Z}\sqrt{-1}$. This
+is the lattice of Gaussian integers. If $f = (1, 1, 1)$, then $L(f) = \mathbb{Z} + \mathbb{Z}(1 + \sqrt{-3})/2$. This is the
+hexagonal lattice. 
+\end{example}
+The discriminant of a $\mathbb{Z}-$basis of a two-dimensional lattice $L$ in $A$ is an invariant of $L$. 
+This justifies the following
+\begin{definition}
+The discriminant of a two dimensional lattice $L$ in $A$ is the discriminant of any $\mathbb{Z}-$basis of $L$. It is denoted by $\Delta(L)$.
+\end{definition}
+
+\subsection{Multiplicative Lattices}
+Let $L$, $M$, and $K$ be additive subgroups of $A$. We define sum, product and quotient of those groups.
+\noindent
+\begin{definition}
+\begin{enumerate}
+\strut	
+\item  The sum of $L$ and $M$ is $L+M = \{\alpha + \beta : \alpha \in L, \beta \in M \}.$
+\item  The product of $L$ and $M$ is the additive subgroup of $A$ generated by all
+products $\alpha\beta, \alpha \in L, \beta \in L$.
+\item The quotient of $L$ and $M$ is $L : M = \{\alpha\in A : \alpha M \subset L \}$.
+\end{enumerate}
+\end{definition}
+
+\begin{example}
+Let $L = 2\mathbb{Z}+\sqrt{−2}\mathbb{Z}, M = 3\mathbb{Z}+ \sqrt{-2}Z$. 
+We claim that 
+$$
+L + M = K = \mathbb{Z} + \sqrt{-2}Z.
+$$
+We have $L, M \subset K$ and therefore $L + M \subset K$. To show that
+$K \subset L + M$ it suffices to prove that $1 \in L + M$. Since $1 = 3 - 2$, this is true.
+\end{example}
+
+We present an example of two lattices whose product is a lattice.
+
+\begin{example}
+Let $L_{1} = L(2,2,1) = 2\mathbb{Z} + (1+\sqrt{-1})\mathbb{Z}$ and
+$L_{2}=(5, 4, 1) = 5\mathbb{Z} + (2 + \sqrt{-1})\mathbb{Z}$. 
+Then 
+$$
+\begin{array}{rl}
+L_{1}L_{2}  = & 10\mathbb{Z} + 2(2+\sqrt{-1})\mathbb{Z} + 5(1+\sqrt{-1})\mathbb{Z} + (1 + 3\sqrt{-1}\mathbb{Z}) =\\[2ex]
+& 10\mathbb{Z} + (3 + \sqrt{-1})\mathbb{Z} = L(10,6,1).
+\end{array}
+$$
+So the product of $L_1$ and $L_2$ is the lattice $L = L(10, 6, 1)$. 
+\end{example}
+
+We have seen two lattices whose product is a lattice. 
+In general, the product of two lattices is not a lattice, as we will see in the next example.
+\begin{example}
+Let $L_1 = \mathbb{Z} + \sqrt{-1}\mathbb{Z}$ and $L_2 = \mathbb{Z} + \sqrt{-2}\mathbb{Z}$. 
+Then
+$$
+L_1L_2 = \mathbb{Z} + \sqrt{-1}\mathbb{Z} + \sqrt{-2}\mathbb{Z} + \sqrt{2}\mathbb{Z}.
+$$
+We show that $L_1 L_2$ is not a lattice. Assume that
+$L_1 L_2$ is a lattice. Let $a = {\rm min}(L_1 L_2 \cap \mathbb{R} >0 )$. 
+Then $1 = xa$ and $\sqrt{2} = ya$ with $x,y \in \mathbb{Z}.$ Hence, $\sqrt{2} = y/x.$ This contradicts the irrationality of $\sqrt{2}.$
+\end{example}
+
+To characterize the irrational lattices in $A$ whose product is a lattice we introduce quadratic orders.
+\begin{definition}
+A quadratic order is a two-dimensional lattice ${\cal O} \in A$ which is also a unitary subring of $A$ (i.e $1 \in {\cal O})$.
+\end{definition}
+We characterize the quadratic orders. We recall that for an integer $\Delta, 
+\Delta  \equiv 0, 1 \mathop{\rm mod} 4$, there is exactly one reduced form $(1, b, c)$ of discriminant $\Delta$,
+which is called the principal form of discriminant $\Delta$.
+
+Any quadratic order can be related to some principal form. Indeed if ${\cal O}$ is a quadratic order. Then $1 \in {\cal O}$.
+Since  ${\cal O}$ is a ring and discrete as a point set, it follows that $1 \in {\rm min}(\mathbb{R}\cap {\cal O})$. Hence
+there is a $\mathbb{Z}-$basis $(1, \theta)$ of ${\cal O}$ of positive orientation. Since ${\cal O}$ is a ring, we have 
+$$
+\theta^2 = -b\theta - c, \mbox{ where } b,c \in \mathbb{Z}.
+$$
+It follows that $\theta =\theta(1,b,c)$ and ${\cal O} = L(1,b,c)$.
+\begin{definition}
+The class number $h(\Delta)$ is the number of proper equivalence classes of primitive integral forms of discriminant $\Delta$.
+\end{definition}
+
+Let the prime form base ${\cal P}_{l},\: l \in N$, be defined as follows:
+$$
+P_{l}:= \left\{ I_{p}\in {\rm Cl}({-\cal D}): p \mbox{ prime, } p \le l, \left(\frac{-\cal D}{p}\right) = 1 \right\}.
+$$
+Then assuming Extended Riemann Hypothesis it is possible to show
+\begin{theorem}[ERH]
+There is an absolute, effectively computable constant $c_{1}$ such that ${\cal P}_{c_{1}\log^2{\cal D}}$ generates ${\rm Cl}(-\cal D)$.
+\label{ERH}
+\end{theorem}
+\noindent
+The class group of ideals of a quadratic imaginary extension $\cal{K} = \mathbb{Q}(\sqrt{-D})$ , denoted as ${\rm Cl}({\cal O}_{\cal K})$, is used as an underlying abelian group for Diffie - Hellman
+cryptographic protocol. The discriminant $\Delta_{\cal{K}} = -{\cal D}$ is said to be maximal order if it is square free and 
+$$\Delta_{\cal K}\equiv 1, 0 \quad (\mathop{\mathrm{mod}}4).$$ IQ-cryptography restricts itself to imaginary extensions, where the class group of ideals is well defined.
+The  class group is generated by the equivalence classes of ideals in the ring of algebraic integers $\mathcal{O}_{\Delta}$. There is one to one 
+corrspondence between the binary quadratic forms and reduced ideals. 
+
+\begin{definition}
+It is said that the ideals are equivalent $I_{1}\sim I_{2}$ if and only if there exist $\alpha, \beta \in\mathcal{O}_{\Delta}$ such that 
+$$
+(\alpha)I_{1} = (\beta)I_{2}
+$$
+\end{definition}
+
+Each ideal can be represented in the form of a $\mathcal{O}_{\Delta}$ module:
+$$
+I = q (\mathbb{Z} a + \mathbb{Z}(b + c\omega_{\Delta})),
+$$
+where
+$$
+\omega_{\Delta} = (r - 1 + \sqrt{\Delta})/r,\quad r = \left\{
+                \begin{array}{ll}
+                  2 &  \mathrm{if}\quad\Delta\equiv 1\quad (\mathop{\mathrm{mod}}4)\\
+                  1 & \mathrm{otherwise}\\
+                \end{array}
+              \right.
+$$
+There is one to one correspondence between reduced ideals and positive primitive forms
+$$
+f(x, y) = a x^2 + b xy + c y ^ 2, \quad\mathrm{gcd}(a,b,c) = 1,\quad a > 0,\quad x, y \in\mathbb{Z}
+$$
+of discriminant $\Delta_{\cal{K}}\equiv -{\cal{D}} = b^2 - 4 a c$. The corresponding ideal has the following form
+$$
+I = \left(a, \frac{b + \sqrt{-\cal{D}}}{2}\right)
+$$
+\begin{definition}[Principal and Proper Ideals]
+If $R$ is an integral domain and $I$ is an $R-$ideal, then $I$ is called a principal $R-$ideal
+if there exists an element $\alpha\in I$ such that $I = (\alpha)$, where $\alpha$ is called a generator
+of $I$. If $I \not = R,$ then $I$ is called a proper ideal.
+\end{definition}
+\begin{definition}[Prime ideal]
+If $R$ is an integral domain, then a proper $R-$ideal $P$ is called a prime $R-$ideal if
+it satisfies the property that whenever, $\alpha\beta \in P$, for $\alpha, \beta \in  R$, then either $\alpha \in P$ or $\beta \in P$.
+\end{definition}
+\begin{definition}[Product of Ideals]
+If $R$ is an integral domain and $I, J$ are $R-$ideals, then the product of $I$ and $J$,
+denoted by $IJ$, is given by
+$$
+IJ = \left\{r \in R : r = \sum_{j = 1}^{n}\alpha_{j}\beta_{j}\quad\mathrm{where}\quad n\in \mathbb{N}, \alpha_{j}\in I, \beta_{j}\in J\quad \mathrm{for}\quad 1\le j\le n \right\}
+$$
+\end{definition}
+{\center\bf Multiplication Formula for Ideals in Quadratic Fields}\\
+Let $I_{j} = (a_{j}, (b_{j} + \sqrt{\Delta})/2),$ for $j = 1,2$ be $\mathcal{O}_{\Delta}$ ideals, then
+$$
+I_{1}I_{2} = (g)\left(a_{3}, \frac{b_{3} + \sqrt{\Delta}}{2}\right),
+$$
+where 
+$$
+a_{3} = \frac{a_{1}a_{2}}{g^2},\mbox{ with } g = \mathrm{gcd}\left(a_{1}, a_{2}, \frac{b_{1} + b_{2}}{2}\right), 
+$$
+and\\
+$$
+b_{3}\equiv\frac{1}{g}\left(\delta a_{2}b_{1} +\mu a_{1}b_{2} + \frac{\nu}{2}(b_{1}b_{2}+ \Delta_{\cal K})\right)\quad(\mathop{\mathrm{mod}}2a_{3}),
+$$
+where $\delta, \mu$ and $\nu$ are determined by 
+$$
+\delta a_{2} + \mu a_{1} + \frac{\nu}{2}(b_{1} + b_{2}) = g
+$$
+\section{Discrete logarithm problem}
+One of the generic methods to solve the Discrete logarithm problem (DLP) is to use the index calculus.
+The idea of index calculus algorithms is to reduce DLP to
+linear algebra. Let $G$ be a cyclic group of order $r$, that we denote additively, and let $P$ be a generator and $Q$ be another element
+for which we want to compute the discrete logarithm. The simplest version of index
+calculus is as follows:
+\begin{enumerate}
+\item[1.] Define a subset ${\cal F}$ of $G$, called the factor base.
+\item[2.] Collect relations:
+\begin{enumerate}[align=left]
+\item[(a)] Pick random integers $a$ and $b$ and compute $R = aP + bQ$;
+\item[(b)] Try to decompose $R$ as a sum of elements of ${\cal F}$;
+\item[(c)] In case of success, $aP + bQ = \sum_{P_{i}\in {\cal F}}e_{i}P_{i}$
+, call it a relation, and store integers
+$(a, b)$ and the vector $(e_{i})$ as a row of a matrix (the relation matrix);
+\item[(d)] Repeat the procedure until we have at least $\#{\cal F}$ relations.
+\end{enumerate}
+\item[3.] Via linear algebra modulo $r$, compute a linear combination of the relations such
+that the right-hand-side vanishes; this leads to an equation $\lambda P + \mu Q = 0$ in $G$.
+\item[4.] If $µ$ is invertible modulo $r$, the discrete logarithm of $Q$ is $\lambda/\mu \mathop{\mathrm{mod}} r$.
+\end{enumerate}
+For a given group $G$, the difficulty is to choose a factor base ${\cal F}$ that has the following
+properties, where the key difficulty resides in the decomposition step that must be fast
+and have a high success probability:
+– The set ${\cal F}$ should not be too large, since we need to collect $\#{\cal F}$ relations.
+– It should be the case that a large proportion of group elements can be written as
+a sum of elements in ${\cal F}$; otherwise Step 2b will fail too often.
+– Given an arbitrary group element it should be efficient to decompose it as a sum in
+${\cal F}$, or else decide that such a decomposition does not exist; otherwise each execution
+of Step 2b will take too long.
+In general, the decomposition of an element will involve only a small number of
+factor base elements. Therefore the matrix is usually quite sparse, and appropriate
+linear algebra algorithms must be used (see Chapter 3.4 \cite{Joux}).
+The archetype of this algorithm is for the group $\mathbb{F}^{∗}_{p}$
+where $p$ is a large prime. In that
+case, of course it would be easier to use a multiplicative notation for the group law. One
+sets ${\cal F} = {p_1,\dots, p_k}$ to be the set of the first $k$ primes. One can consider any group
+element $R \in {\cal F}^{*}_{p}$ as an integer in the range $1\le R < p$ and try to factor it as a product
+of primes. Denoting $L_p(a)$ a subexponential function $\exp(\log(p)^{a}\log(\log(p))^{1-a})$ for
+some constant $c$, one takes $k = L_p(1/2)$. The set ${\cal F}$ has subexponential size and the
+probability that a random integer less than $p$ can be written as a product of primes in
+${\cal F}$ is $1/L_p(1/2)$. One therefore gets an algorithm with subexponential running time.
+\section{Index calculus, example}
+In this section we give an example of simple application of index calculus to the case of the multiplicative group of 
+residues modulo prime number. Let $p$ be a prime number, $g$ a primitive root $\mathop{\rm mod}{p}$, 
+and $a \in {1,\dots, p-1}$. We want to solve the discrete logarithm problem
+$$
+g^x \equiv a \mathop{\rm mod}{p}.
+$$
+We choose a bound $B$ and determine the set
+$$
+{\cal F}(B) = \left\{q\in\mathbb{P} : q\le B \right\}.
+$$
+This is the factor base. An integer $b$ is called $B-$smooth if it has only prime factors in ${\cal F}(B)$.\\
+Let $B = 15$. Then ${\cal F}(B) = \left\{ 2, 3, 5, 7,11, 13 \right\}$. The number $990$ is $15-$smooth. Its prime factorization is 
+$$
+990 = 2 * 3^2 * 5 * 11.
+$$
+We proceed in two steps. First, we compute the discrete
+logarithms of the factor base elements; that is, we solve
+$$
+g^{x(q)} = q \mathop{\rm mod} p
+$$
+for all $q \in {\cal F}(B)$. Then we determine an exponent $y \in \{1, 2, \dots, p-1\}$
+such that $ a g^y \mathop{\rm mod}{p}$ is $B-$smooth. We obtain
+
+$$
+ag^y \equiv \prod_{ q \in {\cal F}(B) }q^{e(q)}\mathop{\rm mod} p
+$$
+with nonnegative exponents $e(q), q \in {\cal F}(B)$. Equations imply
+$$
+ag^{y}\equiv \prod_{q\in {\cal F}(B)}q^{e(q)}\equiv \prod _{q\in {\cal F}(B)}g^{x(q)e(q)}\equiv g^{\sum_{q\in {\cal F(B)}}x(q)e(q)}\mathop{ \rm mod } p,
+$$
+and hence
+$$
+a \equiv g^{\sum_{ q\in {\cal F}(B)} x(q)e(q) - y}\mathop{ \rm mod } p.
+$$
+Therefore,
+$$
+x = \left(\sum_{q\in {\cal F}(B)} x(q)e(q) - y \right) \mathop{ \rm mod } (p - 1)
+$$
+is the discrete logarithm for which we were looking.
+To compute the discrete logarithms of the factor base elements, we
+choose random numbers $z\in {1,... ,p-1}$ and compute $g^z \mathop{\rm mod} p$. We check whether those numbers are
+$B-$smooth. If they are, we compute the decomposition
+$$
+g^{z} \mathop{\rm mod} p= \prod_{q\in {\cal F}(B)}q^{f(q,z)}
+$$
+Each exponent vector $(f(q, z))_{q\in {\cal F}(B)}$ is called a relation.
+We choose $p = 2027, g = 2$ and determine relations for the factor
+base ${2, 3, 5, 7, 11}$. We obtain
+$$
+\begin{array}{lcrcl}
+3*11 &\equiv & 33 &\equiv&  21593 \mathop{\rm mod}\: 2027\\
+5*7*11 &\equiv & 385 &\equiv& 2983 \mathop{\rm mod}\: 2027\\
+27*11 &\equiv & 1408 &\equiv & 21318 \mathop{\rm mod}\: 2027\\
+32*7 &\equiv & 63 &\equiv & 2293 \mathop{\rm mod}\: 2027\\
+26*52 &\equiv & 1600 &\equiv & 21918 \mathop{\rm mod}\: 2027.\\
+\end{array}
+$$
+If we have found as many relations as there are factor base 
+elements, then we try to find the discrete logarithms by solving a linear
+system.
+$$
+g^{z}\equiv \prod_{q\in {\cal F}(B)}q^{f(q,z)}\equiv \prod_{q\in {cal F}(B)}g^{x(q) f(q,z)}\equiv g^{\sum_{q\in {\cal F}(B)}x(q)f(q,z)} \mathop{\rm mod} p
+$$
+This implies
+$$
+z \equiv \sum_{q\in {\cal F}(B)}x(q)f(q, z) \mathop{\rm mod} (p-1)
+$$
+for all z, so each relation yields one linear congruence.
+
+It can be shown that the index calculus algorithm that was described has subexponential running time 
+$$
+L_{p}[1/2, c+o(1)],
+$$
+where the constant $c$ depends on the technical
+realization of the algorithm; for example, on the complexity of the
+algorithm for solving the linear system.
+
+\section{The imaginary quadratic case, algorithms}
+\subsection{The factor base}
+Our algorithm seeks to compute the relations lattice of a large set generating
+the class group. These generators are given by representatives from a large
+set ${\cal F}$ of ideals. The algorithm obtains individual relations by finding two
+exponent vectors ${\mathbf v}$ and ${\mathbf w}$ such that $[{\cal F}]^{\mathbf v} = [{\cal F}]^{\mathbf w}$. The first vector, ${\mathbf v}$, is
+chosen randomly so that $[{\cal F}]^{\mathbf v}$ is a random element of the class group in a sense to be made precise later. 
+The second vector ${\mathbf w}$ is obtained by finding a reduced representative of $[{\cal F}]^{\mathbf v}$ and factor it over ${\cal F}$ using its 
+factorization into a power product of prime ideals. This is successful if all prime ideals occuring in the factorization actually are elements of 
+${\cal F}$. Thus, depending on the proportion of prime ideals in ${\cal F}$ within the set of all prime ideals occuring in the factorization of reduced ideals, 
+the process may have to be repeated many times before it will yield a relation.
+Since ${\cal F}$ needs to contain the prime ideals which the found reduced ideals are factored into, it is called a factor base. We will choose our factor base to
+contain the set ${\cal F}_z$ of all prime ideals $\mathfrak{p}(\Delta, p)$ and their conjugates for which $p$
+is a prime number with $\left(\frac{\Delta}{p}\right) = 1$ and
+$$
+p \le L_{|\Delta|}\left[\frac 12, z\right]
+$$
+for some positive real number
+$$
+z \le 1
+$$
+that is specified later. Depending on the problem we will want to solve, ${\cal F}$
+will just contain the specified prime ideals, or one or two ideals in addition to
+them. Denote by $f$ the cardinality of the factor base. By the prime number
+theorem there will be aproximately $L_{|\Delta|}[1/2, z]/(z\sqrt{\log{|\Delta|} \log{\log|\Delta|}})$ prime
+ideals in ${\cal F}$. Thus, in all cases $f$ will be in $L_{|\Delta|}[1/2, z + o(1)]$.\\
+We order ${\cal F}$ in some way and write
+$$
+{\cal F} = (\mathfrak{p}_1 ,\dots, \mathfrak{p}_f ).
+$$
+All but at most two of the ideals $\mathfrak{p}_i$ are prime.
+We need $[{\cal F}]$ to generate the class group. We will assume that the Extended Riemann Hypothesis (ERH)
+holds and apply Proposition. This proposition says that $[{\cal F}]$ will generate
+the class group if $|\Delta|$ is sufficiently large. Comparing $c_{3}(\Delta)$ with
+$L_{|\Delta|}[1/2, z]$, we see that this is certainly the case if $\Delta < −157$ or $\Delta > 41$
+which we will subsequently assume. We call an ${\cal O-}$ideal ${\cal F-}$smooth if all the
+factors in the prime ideal factorization of $\mathfrak{a}$ are in ${\cal F}$.\\
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb kronecker }$(m, n)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} Integers $m$ and $n$\\
+{\bf Output:} $\left(\frac{m}{n}\right)$ \\
+
+\indent {\bf if} $2\mathop{|}n$ and $2\mathop{|}m$ {\bf then} return 0.\\
+\indent {\bf if} $\mathop{\rm sign}(m) = \mathop{\rm sign}(n) = -1$ {\bf then} $j \leftarrow -1$ {\bf else} $j \leftarrow 1$.\\
+\indent $m \leftarrow |m|, n \leftarrow |n|.$\\
+\indent {\bf while} $n$ is even {\bf do}\\
+\indent \indent {\bf if} $m \equiv 3, 5 \: (\mathop{\rm mod}8)$ {\bf then} $j \leftarrow -j$\\
+\indent \indent $n \leftarrow n/2$\\
+\indent $m \leftarrow  m \mathop{\rm mod} n$\\
+\indent {\bf while} $m \not = 0$ {\bf do}\\
+\indent \indent {\bf while} $m$ is even {\bf do}\\
+\indent\indent\indent {\bf if} $n \equiv 3, 5\: (\mathop{\rm mod} 8)$ {\bf then} $j \leftarrow -j$\\
+\indent\indent\indent $m \leftarrow m/2$\\
+\indent\indent {\bf if} $m \equiv 3 \: (\mathop{\rm mod}4)$ and $n \equiv 3 \:(\mathop{\rm mod} 4)$ {\bf then} $j \leftarrow -j$\\
+\indent\indent interchange $m$ and $n$\\
+\indent\indent $m \leftarrow m\: \mathop{\rm mod} n$\\
+\indent {\bf if} $n = 1$ {\bf then} return j\\
+\indent {\bf else} return 0\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\begin{algorithm} {\verb numberOfPrimeForms }$(\Delta, p)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A discriminant $\Delta$ and a prime number $p$\\
+{\bf Output:} $R(\Delta, p)$\\
+\indent return $\left(\frac{\Delta}{p}\right) + 1$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb primeForm }$(\Delta, p)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A discriminant $\Delta$ and a prime number $p$ with $R(\Delta, p) > 0$\\
+{\bf Output:} The form $\left(p, b(\Delta, p), c(\Delta, p)\right)$\\
+\indent $b \leftarrow {\verb sqrtMod4P }(\Delta,p)$\\
+\indent return $\left(p, b, (b^2 - \Delta)/(4p)\right)$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+Tonelli algorithm of calculating square root modulo prime:\\
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb sqrtModP }$(r, p)$ \\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} A prime $p$ and a square $r$ modulo $p$\\
+{\bf Output:} A square root $s$ of $r$ modulo $p$ or {\verb nil }\\
+
+\indent $m \leftarrow p-1, t \leftarrow 0 $\\
+\indent {\bf while} $m$ is even {\bf do}\\
+\indent\indent $t \leftarrow t +1$\\
+\indent\indent $m \leftarrow m/2$\\
+\indent Choose a random element $c \in \left\{1,\dots, p-1\right\}$\\
+\indent {\bf if} $\left(\frac{c}{p}\right) = 1$ {\bf then} return {\verb nil }\\
+\indent $r_m \leftarrow r^m\mathop{{\rm mod}} p$\\
+\indent $c_m \leftarrow c^{-m} \mathop{\rm mod} p$\\
+\indent $e \leftarrow 0, i \leftarrow 0$\\
+\indent {\bf while} $r_m \not = 1$ {\bf do}\\
+\indent \indent $i \leftarrow i +1$\\
+\indent \indent $c_m \leftarrow c^2_m$\\
+\indent\indent {\bf if} $r^{2^{t - i - 1}}_{m} \mathop{{\rm mod}} p \not = 1$ {\bf then}\\
+\indent \indent \indent $e \leftarrow e + 2^i$\\
+\indent \indent \indent $r_m \leftarrow r_m c_m \mathop{{\rm mod}} p$\\
+\indent $a \leftarrow rc^{-e} \mathop{\rm mod} p$\\
+\indent return $c^{e/2}a^{(m+1)/2} \mathop{{\rm mod}} p$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\begin{proposition}
+The algorithm {\verb sqrtModP } has the following properties.
+It fails with probability $1/2$. If it does not fail, then it returns a square root of
+$r \mathop{\rm mod} p$ provided that $r$ is a square $\mathop{\rm mod}{p}$. Its running time is $O((\log{p})^4 )$.
+\end{proposition}
+\begin{corollary}
+Algorithm {\verb primeForm } has success probability $1/2$ and running time
+$O(size(\Delta) {\rm size}(p) + ({\rm size}(p))^4)$.
+\label{cor1}
+\end{corollary}
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb factorBase }$(\Delta, z)$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} The discriminant $\Delta$, the parameter $z$.\\
+{\bf Output:} The factor base ${\cal F}_z$ or {\verb nil }.\\
+\indent Set $L \leftarrow L_{|\Delta|}[1/2, z] , k \leftarrow \lceil \log L \rceil$ \\
+\indent Set ${\cal F}\leftarrow \emptyset$\\
+\indent {\bf for} all primes $p < L$ {\bf do}\\
+{\bf if} {\verb kronecker }$(\Delta, p) = 1$ {\bf then}\\
+\indent $i \leftarrow 0$\\
+\indent {\bf repeat}\\
+\indent \indent $i \leftarrow i + 1$\\
+\indent \indent $g \leftarrow ${\verb primeForm }$(\Delta, p)$\\
+\indent {\bf until} $i > 2k$ or $g \not = ${\verb nil }\\
+\indent {\bf if} $f \not =$ {\verb nil } {\bf then}\\
+\indent ${\cal F} \leftarrow {\cal F} \cup \left\{L(g), L(g)^\sigma \right\}$\\
+{\bf else}\\
+\indent Return {\verb nil }\\
+Return ${\cal F}$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+
+\begin{lemma}
+Algorithm {\verb factorBase } succeeds with probability exceeding $1/4$.
+\end{lemma}
+\begin{proof}
+Corollary \ref{cor1} implies that Algorithm factorBase succeeds with
+probability larger than
+$$
+(1 - 2^{-k})^L .
+$$
+This probability larger than $1/4$ since $2k > \log L$ as if follows from 
+$$
+(1 - (1 - p)^{l})^{f}\ge \frac 14, {\mbox where}\: pl > \log f, f > 1, 0 < p \le 1, \: l \in \mathbb{N}.
+$$
+\end{proof}	
+\begin{lemma}
+If $z \le 1$, then $f < 8|\Delta|/h_{\Delta} + 1$.
+\end{lemma}
+\subsection{Random relations}
+The calculation of the random relations is done by applying {\verb randomRelation } algorithm.
+That algorithm selects an exponent vector $\mathbf{v}\in \mathbb{Z}^f_{0 \dots |\Delta|-1}$ randomly 
+with the uniform distribution. It calculates the reduced ideal $\mathfrak{a}$ in the
+ideal class $[{\cal F}^{\mathbf{v}+\mathbf{w}}]$ where ${\mathbf w}$ is some fixed offset vector that is also input for
+{\verb randomRelation }. If the reduced ideal happens to be ${\cal F}-$smooth, that is,
+$$
+\mathfrak{a} = {\cal F}^{\mathbf a}
+$$
+for some $\mathbf{a}\in\mathbb{Z}^f$, then
+$$
+[{\cal F}^{\mathbf{v}+\mathbf{w}}] = [\mathfrak{a}] = [{\cal F}^{\mathbf a}].
+$$
+Hence, the relation 
+$$
+\mathbf{z} = {\mathbf a}-{\mathbf w}-{\mathbf v} \in  L([{\cal F}])
+$$
+is found.
+Here is the algorithm.\\
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+{\verb randomRelation } $(\Delta, {\cal F}, {\mathbf w})$\\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} The discriminant $\Delta$, the factor base ${\cal F}$ of length $f$, the offset vector $\mathbf{w}\in\mathbb{Z}^f$.\\
+{\bf Output:} A relation ${\mathbf z}$ for $[F ]$ or {\verb nil }.\\
+Select ${\mathbf v} \in \mathbb{Z}^f_{0\dots |\Delta|-1}$ uniformly at random.\\
+Calculate the reduced ideal ${\mathfrak a}$ in $[{\cal F}^{\mathbf{v}+\mathbf{w}}]$.\\
+{\bf if} $\mathfrak{a} = {\cal F}^{\mathbf a}$ with ${\mathbf a }\in \mathbb{Z}^f$ {\bf then}\\
+\indent Return ${\mathbf z} = {\mathbf v}+{\mathbf w}-{\mathbf a}$.\\
+{\bf else}\\
+\indent Return {\verb nil }\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+
+We explain how Algorithm {\verb randomRelation } decides whether the reduced
+ideal $\mathfrak{a}$ factors over the factor base ${\cal F}$. Let ${\mathfrak a} = L(a, b, c)$ with a reduced form
+$(a, b, c)$. We know from Proposition 8.6.11 that a factors over ${\cal F}$ if and only if
+$\mathfrak{a}$ factors into the norms of the prime ideals in ${\cal F}$. Proposition 8.6.11 also tells\\
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb fullRank }$(\Delta, {\cal F}, z)$\\
+\noindent\rule{\textwidth}{0.4pt}
+\strut\\[2ex]
+{\bf Input:} Discriminant $\Delta$, factor base ${\cal F}$, parameter $z$.\\
+{\bf Output:} {\verb nil } or relations $({\mathbf z}_1, d_1 ),\dots, ({\mathbf z}_{f} , d_{f} )\in \tilde{L}({\cal F})$ such that the matrix
+$({\mathbf z}_1,\dots, {\mathbf z}_f)$ is strictly diagonally dominant.\\
+$l = \lceil(\log{f})/p(\Delta, z)\rceil $\\
+{\bf for} $i = 1, 2,\dots, f$ {\bf do}\\
+\indent $j \leftarrow 0$ \\
+\indent {\bf repeat}\\
+\indent \indent $j \leftarrow j +1$\\
+\indent \indent $(z_i , d_i ) \leftarrow {\verb randomRelation }(\Delta, {\cal F} , B_1 (\Delta)\mathbf{e}_i)$\\
+{\bf until} $j = l$ or $z_i =$ {\verb nil }\\
+{\bf if} $z_i =$ {\verb nil } {\bf then}\\
+\indent {\bf return} {\verb nil }.\\
+{\bf return} $({\mathbf z}_1 , d_1 ),\dots, ({\mathbf z}_f , d_f ).$\\
+\noindent\rule{\textwidth}{0.4pt}\\
+\end{algorithm}
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}{\verb relationLattice }$(\Delta, {\cal F}, z)$\\
+\noindent\rule{\textwidth}{0.4pt}
+\strut\\[2ex]{\bf Input:} The discriminant $\Delta$, the factor base ${\cal F}$ with cardinality $f$, the parameter $z$.\\
+{\bf Output:} {\verb nil } or relations ${\mathbf z}_1,\dots, {\mathbf z}_N \in L[{\cal F}]$.\\
+$N \leftarrow 1, i \leftarrow 0, k \leftarrow \lceil f \log_2 B_2(\Delta)\rceil, n \leftarrow \lceil p_{new}(\Delta, z)\log{k}\rceil, l \leftarrow \lceil(\log{kn})/p(\Delta, z)\rceil$\\
+{\bf repeat}\\
+\indent $i \leftarrow i + 1$\\
+\indent $z_{N+1} \leftarrow$ {\verb randomRelation }$(\Delta, {\cal F}, 0)$\\
+{\bf if} $({\mathbf z}_{N+1}, d_{N+1}) \not = $ {\verb nil } then\\
+\indent $N \leftarrow N + 1$\\
+{\bf until} $i \ge kln$ or $N \ge kn$\\
+{\bf if} $N < kn$ {\bf then}\\
+\indent return {\verb nil }\\
+{\bf else}\\
+\indent return $({\mathbf z}_1,d_1),\dots, ({\mathbf z}_N, d_{N})$\\
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+\subsection{ Fast Discrete Logarithm }
+Following \cite{Vollmer} we describe the fast {\verb DL }-algorithm
+The following algorithm does not require calculating the determinant of the relation matrix, i.e the size of ${\rm Cl}(-{\cal D})$. 
+It has the running time
+$$
+L_{|\Delta|}\left[\frac 12, \frac {3\sqrt{2}}{4} + o(1)\right].
+$$
+
+Thus the algorithm does not certify that the {\verb DL } problem is unsolvable, 
+it just finds $ [g]^{l} = [h] $.
+
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+{ \verb DL }-algorithm in ${\rm Cl}(-\cal D)$ \\
+\noindent\rule{\textwidth}{0.4pt}
+{\bf Input:} Discriminant $-{\cal D}$ of an imaginary quadratic field ${\cal K}$,\\
+\indent two form classes $[g], [h] \in {\rm Cl}(-{\cal D})$,
+error probability $\epsilon$ \\
+{\bf Output:} either natural $l$ such that $[g]^l = [h]$ or {\verb UnDef },\\
+\indent meaning that with probability $1 - \epsilon$ there is no such $l$.\\
+\noindent\rule{\textwidth}{0.4pt}
+{\verb IqDL }$(-{\cal D}, g, h)$\\
+\begin{enumerate}
+\item Construct the factor base ${\cal F}:$\\
+\indent ${\cal F} := \left\{ [f] | f = (p, b, \cdot), p \in {\cal P}_{-{\cal D}},  
+p < L_d\left(\frac 12, \frac {1}{\sqrt{8}}\right)\right\}$
+\item Construct the generating set ${\cal G}:$\\
+\indent ${\cal G} := \left \{ [f] | f = (p, b, \cdot),  p < 6 \log^2 \cal D \right \}$\\
+\item Construct the extended factor base ${\cal E} : = {\cal F} \cup {\cal G} \cup \{g ,h\}$
+\item  {\bf foreach}  $f \in {\cal E}$ \\
+\indent $v^{(f)}$ := {\verb IqRelation }$(f, 2n{\cal D}, {\cal G}\cup \{f, g\}, n^2{\cal D})$
+\item {\bf for} $i:=1$ {\bf to} $3n \log{\cal D} -3\log\epsilon$\\
+\indent $v^{(i)}:=${\verb IqRelation }$(1, 0, {\cal E}, {\cal D}^2))$		
+\item Collect relations $v^{(i)}$ and $v^{(f)}$ intp matrix $A := \left(\frac{a}{A^{\prime}}\right)$ 
+\indent with first row a containing exponents of $g$\\
+\item {\verb DiophantineSolver }$(A^{\prime}, e_{1}, \epsilon/2) =:(y, {\cal D})$
+\item {\bf if } $A^{\prime}y = e_{1}$ {\bf then return } $l:= a\cdot y $\\
+\item {\bf else return } {\verb UnDef }
+\end{enumerate}
+\noindent\rule{\textwidth}{0.4pt}
+\end{algorithm}
+We have the obvious group homomorphism
+$$
+\phi : \mathbb{Z}^{\cal E} \rightarrow {\rm Cl({-\cal D})}\quad : \quad (e_{f})_{f \in {\cal E}} \longrightarrow \prod_{f\in {cal E}}[f]^{e_{f}}. 
+$$
+Its kernel $\Lambda$ (i.e $\phi(Ker) = \{1 \}1$) is a sub-lattice of full rank since ${\rm Cl}(-{\cal D})$.
+Here let $A$ be the matrix whose column vectors are the $v \in {\cal H}$. We may arrange the rows of these 
+vectors in such a way that the entries corresponding to the exponents of $g$ and $h$ appear in the first and second 
+row, respectively. Then {\verb DL } problem is solvable if and only if $\Lambda$ contains some vector of the form 
+$(l, 1, 0, \dots, 0)^{T}$. Due to our assumption that ${\cal H}$ generates $\Lambda$ this happens in turn iff
+$$
+A^{\prime}y = (1, 0, \cdots 0)^{T} =^{\rm def} e_{1}
+$$
+is solvable, where $A^{\prime}$ is obtained from $A$ by striking out the first row $a$. If $y$ is a 
+solution of the Diophantine linear system, then we have $[g]^{l} = [h]$ for $l = a\cdot y$ since 
+$(l, 1, 0,\cdots, 0)^{T} \in\Lambda.$\\
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+Generation of relations\\
+\noindent\rule{\textwidth}{0.4pt}\\
+{\bf Input:} form $f$, exponent $u$, set of generators ${\cal H}$, radius $r$\\
+{\bf Output:} relation $v = (v_{e})_{e}\in {\cal E}$ such that $|v_{f} - a | < \log {\cal D}$, and for 
+$e\not = f \: |v_{e}| < r + \log{\cal D}$ if $e\in {\cal H}$, or else $|v_{e}| < \log{\cal D}$\\
+\noindent\rule{\textwidth}{0.4pt}\\
+{\verb IqRelation }(f, a, {\cal H}, r)\\
+\begin{enumerate}
+\item {\bf repeat }
+\item $\quad$ Draw random $(u)_{e}\in {\cal E}$ from $\mathbb{N}^{\cal H}_{ < r}$ with the uniform distribution
+\item $\quad$ Let $f^{\prime} = (a,b,c)$ be the reduced form in the class $f^{u}\prod_{e\in {\cal H}}e^{u_{e}}$.
+\item {\bf until} attempt to factor $a$ with Algorithm 7.2 from \cite{LP92} is successful\\
+$\qquad$ where we choose $y :=L_{\cal D}[\frac 12, \frac {1}{\sqrt{8}}]$ as upper bound for divisors of $a.$
+\item Find with method (2.8) of \cite{LP92} $(t_{e})_{e \in {\cal F}}$ such that
+$$
+(a,b,c) = \prod_{e \in {\cal F} }e^{t_{e}},
+$$
+and let $t_{e} = 0$ for $e \in {\cal E}\char`\\ {\cal F}$.
+\item $\quad$ {\bf return } $(s_{e})_{e \in {\cal F}},$ where 
+$$
+s_{e} := \left\{
+\begin{array}{cl}
+u + u_{e} - t_{e} & \mbox{if } e = f\\
+u_{e} - t_{e} & \mbox{if } e \in {\cal H}, e \not = f\\
+-t_{e} & \mbox{ if } e \in {\cal E}\char`\\{\cal H}
+\end{array}
+\right.
+$$
+\end{enumerate}	
+\end{algorithm}
+\section{Choice of security parameters}
+Primitives for the Selection of a Class Group is first step in any 
+$IQ-$scheme is to choose a particular class group to use. Any discriminant determines a unique class group. 
+Therefore, we represent a class group
+by the discriminant $\Delta$ of the respective order. We give an algorithm for 
+generating an appropriate group under the name {\verb IQ - PI}. 
+We assume that the implementer can check integers for primality.
+Choosing a new class group will usually be done very infrequently, and in most
+cases speed will not be an issue.
+Technically it is sufficient to choose one {\verb IQ -PI } method once and forever.
+\noindent\rule{\textwidth}{0.4pt}
+\begin{algorithm}
+{ \verb IQ-PI }\\
+\noindent\rule{\textwidth}{0.4pt}\\
+{\bf Input: } A bitlength $l_{\Delta} > 3$, Seq : normal sequence of numbers, i.e having uniform probability of subsequences $1/2^{l_{\Delta}}$.\\
+{\bf Output: } A fundamental imaginary quadratic discriminant $\Delta$ of length $l_{\Delta}$.\\
+\begin{enumerate}
+\item {\bf repeat }
+\item $\quad p \leftarrow^{\rm rnd} Seq$ 
+\item $\quad p \leftarrow 4p + 3$
+\item {\bf until } $p$ is prime
+\item $\Delta \leftarrow -p$
+\item {\bf return } $\Delta$
+\end{enumerate}
+\noindent\rule{\textwidth}{0.4pt}\\
+\end{algorithm}
+
+The base point ideal is taken as random prime ideal $I = (p, b)$ where  $p \in Seq$
+
+\begin{thebibliography}{9}
+\bibitem{BW88} Buchmann, J. and Hugh C. W. A key-exchange sy-
+stem based on imaginary quadratic fields. Journal of Cryptology,
+1(2):107–118, 1988.
+\bibitem{BW90} Buchmann J. and Hugh C. W. A key exchange
+system based on real quadratic fields. extended abstract. In Gilles
+Brassard, editor, Advances in Cryptology – CRYPTO ’89, volume
+435 of Lecture Notes in Computer Science, pages 335–343. Springer-Verlag, 1990.
+\bibitem{Buchmann} Buchmann, J.: "Introduction to Cryptography", 2nd ed, 2004, Springer.
+\bibitem{Buchmann2} Buchmann, J., Vollmer, U.: "Binary Quadratic Forms, An Algorithmic Approach", 2007, Springer.
+\bibitem{Joux} Joux, A.: Algorithmic cryptanalysis. Chapman \& Hall/CRC (2009)
+\bibitem{LP92} Lenstra H.W. and Pomerance C.:  A rigorous time bound for factoring
+integers. J. Amer. Math. Soc. , 5:483-516, 1992.
+\bibitem{Lenstra} Lenstra, A.K., and Verhueul, E.R.: Selecting cryptographic keysizes. In Practice and Theory in Public Key Cryptography, PKC 2000 (2000), 
+H. Imai and Y. Zheng, eds., vol. 1751 of Lecture Notes in Computer Science, Springer-Verlag, pp. 446-465. 
+\bibitem{Mollin} Mollin, R. Advanced Number Theory with Applications Boca Raton, London, New York: Chapman\&Hall/Crc Press, Taylor and Francis Group, 2010. 476. Print. 
+\bibitem {Vollmer} Vollmer, U., Asymptotically fast discrete logarithms in quadratic number fields, Algorithmic Number Theory, ANTS-IV (Wieb Bosma, ed.), 
+Lecture Notes in Computer Science, vol. 1838, Springer-Verlag, 2000, pp. 581–594.
+\bibitem {Vollmer2} Vollmer, U.: Invariant and discrete logarithm computation in quadratic orders,
+Ph.D. thesis, Technische Universit¨at Darmstadt, Fachbereich Informatik, 2003
+\bibitem{Sey87} M. Seysen. A probablistic factorization algorithm with quadratic forms of
+negative discriminant. Math. Comp. , 48:757-780, 1987.
+\bibitem{Jacob} Jacobson, M.:, Subexponential class group computation in quadratic orders,
+Ph.D. thesis, Technische Universit¨at Darmstadt, Fachbereich Informatik,
+Darmstadt, Germany, 1999.
+\bibitem{GJ} Giesbrecht M., Jacobson, M., and torjohann, A.: Algorithms
+for large integer matrix problems, Applied algebra, algebraic algorithms
+and error-correcting codes (Melbourne, 2001), Lecture Notes
+in Computer Science, vol. 2227, Springer, Berlin, 2001, pp. 297–307.
+\end{thebibliography}
+\end{document}
